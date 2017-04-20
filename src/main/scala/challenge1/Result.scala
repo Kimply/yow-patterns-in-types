@@ -235,7 +235,17 @@ object Example {
    *   *           -> NotFound
    */
   def route(method: Method, path: String): Result[Int => Int] =
-    ???
+    method match {
+      case Get => path match {
+        case "single" => Ok(_*1)
+        case "double" => Ok(_*2)
+        case "triple" => Ok(_*3)
+      }
+      case Put => Fail(Unauthorized)
+      case Post => Fail(Unauthorized)
+      case Delete => Fail(Unauthorized)
+      case _ => Fail(NotFound)
+    }
 
   /*
    * Attempt to compute an `answer`, by:
@@ -245,7 +255,7 @@ object Example {
    *  - using the implementation and request value to compute an answer.
    */
   def service(path: String, methodx: String, body: String): Result[Int] =
-    ???
+    
 
   /*
    * Sometimes we always an `answer`, so default to 0 if
