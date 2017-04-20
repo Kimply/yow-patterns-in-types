@@ -24,6 +24,8 @@ object Error {
 }
 
 /*
+
+data Result a = Ok a | Fail Error
  * A result type that represents one of our errors or a success.
  */
 case class Fail[A](error: Error) extends Result[A]
@@ -42,11 +44,22 @@ sealed trait Result[A] {
    *
    * scala> Fail(NotFound).fold(_ => 0, x => x)
    *  = 0
+   *
    */
   def fold[X](
     fail: Error => X,
     ok: A => X
-  ): X = ???
+  ): X = this match {
+    /*
+    case Fail(NotFound) => fail(NotFound)
+    case Fail(Explosion(exception)) => fail(Explosion(exception))
+    case Fail(InvalidRequest) => fail(InvalidRequest)
+    case Fail(InvalidMethod) => fail(InvalidMethod)
+    case Fail(Unauthorized) => fail(Unauthorized)
+    */
+    case Fail(failure) => fail(failure)
+    case Ok(correct) => ok(correct)
+  }
 
   /*
    * Exercise 1.2:
@@ -65,8 +78,10 @@ sealed trait Result[A] {
    *
    * Advanced: Try using flatMap.
    */
-  def map[B](f: A => B): Result[B] =
-    ???
+  def map[B](f: A => B): Result[B] = this match {
+    case Fail(failure) => Fail(failure)
+    case Ok(c) => Ok(f(c))
+  }
 
 
   /*
@@ -91,8 +106,11 @@ sealed trait Result[A] {
    *
    * Advanced: Try using fold.
    */
-  def flatMap[B](f: A => Result[B]): Result[B] =
-    ???
+  def flatMap[B](f: A => Result[B]): Result[B] = this match {
+    case Fail(failure) => Fail(failure)
+    case Ok(s) => f(s)
+  }
+    
 
 
   /*
@@ -107,8 +125,10 @@ sealed trait Result[A] {
    * scala> Fail(NotFound).getOrElse(10)
    *  = 10
    */
-  def getOrElse(otherwise: => A): A =
-    ???
+  def getOrElse(otherwise: => A): A = this match {
+    case Ok(s) => s
+    case Fail(f) => otherwise
+  }
 
 
   /*
@@ -130,7 +150,10 @@ sealed trait Result[A] {
    *  = Fail(Unauthorized)
    */
   def |||(alternative: => Result[A]): Result[A] =
-    ???
+    this match {
+      case Ok(s) => Ok(s)
+      case Fail(f) => alternative
+    }
 }
 
 object Result {
@@ -179,12 +202,25 @@ object Example {
    *
    * Hint: Scala defines String#toInt, but warning it throws exceptions if it is not a valid Int :|
    */
-  def request(body: String): Result[Int] =
-    ???
+  def request(body: String): Result[Int] = {
+    try{
+      Ok(body.toInt)
+    } catch {
+      case e => Fail(InvalidRequest)
+    }
+  }
 
   /* Parse the method if it is valid, otherwise fail with InvalidMethod. */
-  def method(method: String): Result[Method] =
-    ???
+  def method(method: String): Result[Method] = {
+    method.toLowerCase match {
+      case "get" => Ok(Get)
+      case "post" => Ok(Post)
+      case "put" => Ok(Put)
+      case "delete" => Ok(Delete)
+      case _ => Fail(InvalidMethod)
+    }
+  }
+    
 
   /*
    * Route method and path to an implementation.
